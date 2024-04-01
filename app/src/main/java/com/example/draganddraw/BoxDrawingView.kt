@@ -4,10 +4,15 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.PointF
+import android.os.Build.VERSION
+import android.os.Build.VERSION_CODES
+import android.os.Bundle
+import android.os.Parcelable
 import android.util.AttributeSet
 import android.util.Log
 import android.view.MotionEvent
 import android.view.View
+import com.example.draganddraw.constance.Constance
 import com.example.draganddraw.database.Box
 
 private const val TAG = "BoxDrawingView"
@@ -18,7 +23,7 @@ class BoxDrawingView(
 ) : View(context, attrs) {
 
     private var currentBox: Box? = null
-    private val boxes = mutableListOf<Box>()
+    private var boxes = mutableListOf<Box>()
     private val boxPaint = Paint().apply {
         color = 0x22ff0000.toInt()
     }
@@ -73,4 +78,27 @@ class BoxDrawingView(
         }
     }
 
+    override fun onSaveInstanceState(): Bundle {
+        Log.i("restore1", "state1")
+        val state = super.onSaveInstanceState()
+        val bundle: Bundle = Bundle()
+        bundle.putParcelableArrayList(Constance.BOXES, ArrayList<Parcelable>(boxes))
+        bundle.putParcelable(Constance.VIEW_STATE, state)
+        Log.i("restore4", "")
+        return bundle
+    }
+
+    override fun onRestoreInstanceState(state: Parcelable?) {
+        Log.i("restore2", "state2")
+        if (state is Bundle) {
+            Log.i("restore3", "state3")
+            if (VERSION.SDK_INT >= VERSION_CODES.TIRAMISU) {
+                boxes = state.getParcelableArrayList(Constance.BOXES, Box::class.java)?.toMutableList() ?: mutableListOf()
+                super.onRestoreInstanceState(state.getParcelable(Constance.VIEW_STATE, Box::class.java))
+            } else {
+                boxes = state.getParcelableArrayList<Box>(Constance.BOXES)?.toMutableList() ?: mutableListOf()
+                super.onRestoreInstanceState(state.getParcelable(Constance.VIEW_STATE))
+            }
+        }
+    }
 }
