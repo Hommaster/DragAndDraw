@@ -14,8 +14,7 @@ import android.view.MotionEvent
 import android.view.View
 import com.example.draganddraw.constance.Constance
 import com.example.draganddraw.database.Box
-
-private const val TAG = "BoxDrawingView"
+import kotlin.math.atan2
 
 class BoxDrawingView(
     context: Context,
@@ -31,33 +30,40 @@ class BoxDrawingView(
         color = 0xfff8efe0.toInt()
     }
 
-    override fun onTouchEvent(event: MotionEvent?): Boolean {
-        val current = PointF(event!!.x, event.y)
-        var action = ""
-        when (event.action) {
+    private var lastRotation = 0f
+
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+
+        var current = PointF(event.x, event.y)
+
+        when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
-                action = "ACTION_DOWN"
                 // Reset drawing state
                 currentBox = Box(current).also {
                     boxes.add(it)
                 }
             }
             MotionEvent.ACTION_MOVE -> {
-                action = "ACTION_MOVE"
                 updateCurrentBox(current)
+                //when the second finger appears, we mathematically calculate the degrees between the two fingers
+                if (event.pointerCount == 2) {
+                    val firstPointer = PointF(event.getX(0), event.getY(0))
+                    val secondPointer = PointF(event.getX(1), event.getY(1))
+                    val deltaX = firstPointer.x - secondPointer.x
+                    val deltaY = firstPointer.y - secondPointer.y
+                    val degreeInRad = atan2(deltaX, deltaY).toDouble()
+                    //save angle to database
+                    currentBox?.setAngle(Math.toDegrees(degreeInRad).toFloat())
+                }
             }
             MotionEvent.ACTION_UP -> {
-                action = "ACTION_UP"
                 updateCurrentBox(current)
                 currentBox = null
             }
             MotionEvent.ACTION_CANCEL -> {
-                action = "ACTION_CANCEL"
                 currentBox = null
             }
         }
-
-        Log.i(TAG, "$action at x=${current.x}, y=${current.y}")
 
         return true
     }
@@ -66,8 +72,20 @@ class BoxDrawingView(
         // Fill the background
         canvas.drawPaint(backgroundPaint)
 
+        val angle = currentBox?.getAngle()
+
         boxes.forEach { box ->
+            //get angle from database
+            val angle = box.getAngle()
+            val px = (box.start.x + box.end.x)/2
+            val py = (box.start.y + box.end.y)/2
+            canvas.save()
+            //without this "if" thrown null when drawing
+            if (angle != null) {
+                canvas.rotate(angle, px, py)
+            }
             canvas.drawRect(box.left, box.top, box.right, box.bottom, boxPaint)
+            canvas.restore()
         }
     }
 
@@ -84,7 +102,6 @@ class BoxDrawingView(
         val bundle: Bundle = Bundle()
         bundle.putParcelableArrayList(Constance.BOXES, ArrayList<Parcelable>(boxes))
         bundle.putParcelable(Constance.VIEW_STATE, state)
-        Log.i("restore4", "")
         return bundle
     }
 
