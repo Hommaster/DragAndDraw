@@ -7,6 +7,7 @@ import kotlinx.parcelize.Parcelize
 @Parcelize
 data class Box(val start: PointF) : Parcelable {
     var end: PointF = start
+    private var angle: Float? = null
 
     val left: Float
         get() = Math.min(start.x, end.x)
@@ -19,4 +20,12 @@ data class Box(val start: PointF) : Parcelable {
 
     val bottom: Float
         get() = Math.max(start.y, end.y)
+
+    fun setAngle(angle: Float) {
+        this.angle = angle
+    }
+
+    fun getAngle(): Float? {
+        return angle
+    }
 }
