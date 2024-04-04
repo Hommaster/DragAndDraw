@@ -14,27 +14,27 @@ import android.view.MotionEvent
 import android.view.View
 import com.example.draganddraw.constance.Constance
 import com.example.draganddraw.database.Box
+import com.example.draganddraw.database.Color
 import kotlin.math.atan2
 
 class BoxDrawingView(
     context: Context,
     attrs: AttributeSet? = null
-) : View(context, attrs) {
+) : View(context, attrs){
 
     private var currentBox: Box? = null
+    private var colors: Color? = null
     private var boxes = mutableListOf<Box>()
-    private val boxPaint = Paint().apply {
-        color = 0x22ff0000.toInt()
-    }
+    private var boxPaint: Paint? = null
     private val backgroundPaint = Paint().apply {
         color = 0xfff8efe0.toInt()
     }
 
-    private var lastRotation = 0f
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
+        Log.i("BoxPaintColor", "$boxPaint")
 
-        var current = PointF(event.x, event.y)
+        val current = PointF(event.x, event.y)
 
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
@@ -42,6 +42,7 @@ class BoxDrawingView(
                 currentBox = Box(current).also {
                     boxes.add(it)
                 }
+                colors = Color()
             }
             MotionEvent.ACTION_MOVE -> {
                 updateCurrentBox(current)
@@ -84,7 +85,18 @@ class BoxDrawingView(
             if (angle != null) {
                 canvas.rotate(angle, px, py)
             }
-            canvas.drawRect(box.left, box.top, box.right, box.bottom, boxPaint)
+            Log.i("BDVs", "${colors?.getColor()}")
+            boxPaint = Paint().apply {
+                color = when (colors?.getColor()) {
+                    0 -> {
+                        0x22ff1111
+                    }
+                    else ->  {
+                        0x22ff0000
+                    }
+                }
+            }
+            canvas.drawRect(box.left, box.top, box.right, box.bottom, boxPaint!!)
             canvas.restore()
         }
     }
@@ -97,7 +109,6 @@ class BoxDrawingView(
     }
 
     override fun onSaveInstanceState(): Bundle {
-        Log.i("restore1", "state1")
         val state = super.onSaveInstanceState()
         val bundle: Bundle = Bundle()
         bundle.putParcelableArrayList(Constance.BOXES, ArrayList<Parcelable>(boxes))
@@ -106,9 +117,7 @@ class BoxDrawingView(
     }
 
     override fun onRestoreInstanceState(state: Parcelable?) {
-        Log.i("restore2", "state2")
         if (state is Bundle) {
-            Log.i("restore3", "state3")
             if (VERSION.SDK_INT >= VERSION_CODES.TIRAMISU) {
                 boxes = state.getParcelableArrayList(Constance.BOXES, Box::class.java)?.toMutableList() ?: mutableListOf()
                 super.onRestoreInstanceState(state.getParcelable(Constance.VIEW_STATE, Box::class.java))
